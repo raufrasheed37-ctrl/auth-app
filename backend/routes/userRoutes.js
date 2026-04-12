@@ -5,13 +5,17 @@ import User from "../models/User.js";
 const router = express.Router();
 
 router.get("/profile", authMiddleware, async (req, res) => {
-  const user = await User.findById(req.user).select("-password");
+  try {
+    const user = await User.findById(req.user).select("-password");
 
-  res.json({ user });
-});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-router.get("/test", (req, res) => {
-    res.send("User route works");
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 export default router;
