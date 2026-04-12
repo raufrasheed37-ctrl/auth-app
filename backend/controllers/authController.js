@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 /* REGISTER */
 export const register = async (req, res) => {
@@ -50,6 +51,43 @@ export const login = async (req, res) => {
     res.json({
       token,
       user: { id: user._id, email: user.email },
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* FORGOT PASSWORD */
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // 1. Find user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.json({
+        message: "If email exists, reset link sent",
+      });
+    }
+
+    // 2. Generate token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // 3. Save token + expiry (15 mins)
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+
+    await user.save();
+
+    // 4. Create reset link (IMPORTANT: change to your frontend URL)
+    const resetUrl = `https://your-frontend.vercel.app/reset-password/${resetToken}`;
+
+    // 5. Return link (for testing on phone)
+    res.json({
+      message: "Reset link generated",
+      resetUrl,
     });
 
   } catch (error) {
