@@ -82,7 +82,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     // 4. Create reset link (IMPORTANT: change to your frontend URL)
-    const resetUrl = `https://your-frontend.vercel.app/reset-password/${resetToken}`;
+    const resetUrl = `https://frontend-three-alpha-65.vercel.app/reset-password/${resetToken}`;
 
     // 5. Return link (for testing on phone)
     res.json({
