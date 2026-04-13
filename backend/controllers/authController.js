@@ -63,7 +63,6 @@ export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // 1. Find user
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -72,22 +71,52 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // 2. Generate token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // 3. Save token + expiry (15 mins)
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
 
     await user.save();
 
-    // 4. Create reset link (IMPORTANT: change to your frontend URL)
     const resetUrl = `https://frontend-three-alpha-65.vercel.app/reset-password/${resetToken}`;
 
-    // 5. Return link (for testing on phone)
     res.json({
       message: "Reset link generated",
       resetUrl,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* RESET PASSWORD */
+export const resetPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const { token } = req.params;
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired token",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.json({
+      message: "Password reset successful",
     });
 
   } catch (error) {
