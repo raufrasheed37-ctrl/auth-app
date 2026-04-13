@@ -7,6 +7,9 @@ import crypto from "crypto";
 export const register = async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    console.log("FORGOT EMAIL:", email);
+console.log("USER FOUND:", user);
 
     const userExists = await User.findOne({ email });
     if (userExists) {
