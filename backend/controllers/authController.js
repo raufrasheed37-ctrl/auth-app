@@ -7,9 +7,8 @@ import crypto from "crypto";
 export const register = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    console.log("FORGOT EMAIL:", email);
-console.log("USER FOUND:", user);
+
+    console.log("REGISTER EMAIL:", email); // ✅ correct log
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -35,7 +34,11 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log("LOGIN EMAIL:", email); // optional debug
+
     const user = await User.findOne({ email });
+    console.log("LOGIN USER FOUND:", user);
+
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -66,7 +69,11 @@ export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
+    console.log("FORGOT EMAIL:", email); // ✅ debug
+
     const user = await User.findOne({ email });
+
+    console.log("USER FOUND:", user); // ✅ debug
 
     if (!user) {
       return res.json({
@@ -99,10 +106,14 @@ export const resetPassword = async (req, res) => {
     const { password } = req.body;
     const { token } = req.params;
 
+    console.log("RESET TOKEN:", token); // debug
+
     const user = await User.findOne({
       resetPasswordToken: token,
       resetPasswordExpire: { $gt: Date.now() },
     });
+
+    console.log("RESET USER FOUND:", user);
 
     if (!user) {
       return res.status(400).json({
