@@ -2,13 +2,14 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 /* REGISTER */
 export const register = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("REGISTER EMAIL:", email); // ✅ correct log
+    console.log("REGISTER EMAIL:", email);
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -34,7 +35,7 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log("LOGIN EMAIL:", email); // optional debug
+    console.log("LOGIN EMAIL:", email);
 
     const user = await User.findOne({ email });
     console.log("LOGIN USER FOUND:", user);
@@ -64,16 +65,16 @@ export const login = async (req, res) => {
   }
 };
 
-/* FORGOT PASSWORD */
+/* FORGOT PASSWORD (UPDATED WITH EMAIL) */
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    console.log("FORGOT EMAIL:", email); // ✅ debug
+    console.log("FORGOT EMAIL:", email);
 
     const user = await User.findOne({ email });
 
-    console.log("USER FOUND:", user); // ✅ debug
+    console.log("USER FOUND:", user);
 
     if (!user) {
       return res.json({
@@ -81,18 +82,42 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
+    // 🔥 Generate token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+    user.resetPasswordExpire = Date.now() + 2 * 60 * 1000;
 
     await user.save();
 
+    // 🔥 Reset link
     const resetUrl = `https://frontend-three-alpha-65.vercel.app/reset-password/${resetToken}`;
 
+    // 🔥 Nodemailer setup
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAIL_HOST,
+      port: process.env.MAIL_PORT,
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
+    });
+
+    // 🔥 Send email
+    await transporter.sendMail({
+      from: '"Auth App" <no-reply@auth.com>',
+      to: user.email,
+      subject: "Password Reset",
+      html: `
+        <h3>Password Reset Request</h3>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+        <p>This link expires in 15 minutes.</p>
+      `,
+    });
+
     res.json({
-      message: "Reset link generated",
-      resetUrl,
+      message: "Reset link sent to your email",
     });
 
   } catch (error) {
@@ -106,7 +131,7 @@ export const resetPassword = async (req, res) => {
     const { password } = req.body;
     const { token } = req.params;
 
-    console.log("RESET TOKEN:", token); // debug
+    console.log("RESET TOKEN:", token);
 
     const user = await User.findOne({
       resetPasswordToken: token,
@@ -118,6 +143,13 @@ export const resetPassword = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         message: "Invalid or expired token",
+      });
+    }
+
+    // 🔥 Optional validation
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
       });
     }
 
