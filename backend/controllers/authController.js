@@ -65,7 +65,7 @@ export const login = async (req, res) => {
   }
 };
 
-/* FORGOT PASSWORD (UPDATED WITH EMAIL) */
+/* FORGOT PASSWORD */
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -76,6 +76,7 @@ export const forgotPassword = async (req, res) => {
 
     console.log("USER FOUND:", user);
 
+    
     if (!user) {
       return res.json({
         message: "If email exists, reset link sent",
@@ -86,17 +87,16 @@ export const forgotPassword = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
 
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = Date.now() + 2 * 60 * 1000;
+    user.resetPasswordExpire = Date.now() + 2 * 60 * 1000; // ✅ 2 mins
 
     await user.save();
 
-    // 🔥 Reset link
     const resetUrl = `https://frontend-three-alpha-65.vercel.app/reset-password/${resetToken}`;
 
-    // 🔥 Nodemailer setup
+    // 🔥 Mail transporter
     const transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST,
-      port: process.env.MAIL_PORT,
+      port: Number(process.env.MAIL_PORT), // ✅ safer
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
@@ -112,7 +112,7 @@ export const forgotPassword = async (req, res) => {
         <h3>Password Reset Request</h3>
         <p>Click the link below to reset your password:</p>
         <a href="${resetUrl}">${resetUrl}</a>
-        <p>This link expires in 15 minutes.</p>
+        <p>This link expires in 2 minutes.</p>
       `,
     });
 
@@ -146,7 +146,7 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // 🔥 Optional validation
+    
     if (!password || password.length < 6) {
       return res.status(400).json({
         message: "Password must be at least 6 characters",
